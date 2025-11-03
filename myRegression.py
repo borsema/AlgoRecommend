@@ -65,20 +65,20 @@ class MyRegression:
         variance = np.mean(np.var(predictions, axis=0))
         return bias, variance
 
-    def cross_validate_model(self, model_type="Linear", cv_splits=5):
-        if model_type == "Linear":
-            model = LinearRegression()
-        elif model_type == "Lasso":
-            model = Lasso(alpha=0.1)
-        else:
-            model = Ridge(alpha=0.1)
-
-        kf = KFold(n_splits=cv_splits, shuffle=True, random_state=self.random_state)
-        r2_scores = cross_val_score(model, self.X, self.y, cv=kf, scoring="r2")
-        mse_scores = -cross_val_score(model, self.X, self.y, cv=kf, scoring="neg_mean_squared_error")
-        return {
-            "cv_r2_mean": np.mean(r2_scores),
-            "cv_r2_std": np.std(r2_scores),
-            "cv_mse_mean": np.mean(mse_scores),
-            "cv_mse_std": np.std(mse_scores)
-        }
+    # def cross_validate_model(self, model_type="Linear", cv_splits=5):
+    #     if model_type == "Linear":
+    #         model = LinearRegression()
+    #     elif model_type == "Lasso":
+    #         model = Lasso(alpha=0.1)
+    #     else:
+    #         model = Ridge(alpha=0.1)
+    #
+    #     kf = KFold(n_splits=cv_splits, shuffle=True, random_state=self.random_state)
+    #     r2_scores = cross_val_score(model, self.X, self.y, cv=kf, scoring="r2")
+    #     mse_scores = -cross_val_score(model, self.X, self.y, cv=kf, scoring="neg_mean_squared_error")
+    #     return {
+    #         "cv_r2_mean": np.mean(r2_scores),
+    #         "cv_r2_std": np.std(r2_scores),
+    #         "cv_mse_mean": np.mean(mse_scores),
+    #         "cv_mse_std": np.std(mse_scores)
+    #     }

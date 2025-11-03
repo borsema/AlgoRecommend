@@ -1,15 +1,20 @@
 import streamlit as st
 import pandas as pd
 from blue_theme import apply_blue_theme
-import myRegression
-from MyRegressionCleaning import clean_regression_data
-from myRegression_display import display_metrics, plot_all_graphs_horizontal, download_predictions
+import myRegression # Assuming this file exists
+from MyRegressionCleaning import clean_regression_data # Assuming this file exists
+from myRegression_display import display_metrics, plot_all_graphs_horizontal, download_predictions # Assuming this file exists
+
+# Import the fragment function
+from DecisionTreeDisplay import DisplayDT
+
+
 # ---------- Theme & Config ----------
 apply_blue_theme()
 st.set_page_config(page_title="Algorithm Recommendation Tool", layout="wide")
 
 # ---------- Header ----------
-st.markdown("<h1 style='text-align: center;'>⋈ Algorithm Recommendation Tool</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>тЛИ Algorithm Recommendation Tool</h1>", unsafe_allow_html=True)
 
 # ---------- Upload Section ----------
 with st.expander("📁 Upload CSV File", expanded=True):
@@ -19,10 +24,10 @@ if uploaded_file:
     df = pd.read_csv(uploaded_file)
     all_columns = df.columns.tolist()
 
-    st.subheader("📊 Data Preview")
+    st.subheader("👀 Data Preview")
     st.dataframe(df.head(), use_container_width=True)
 
-    # ---------- Step 1 & 2 with Vertical Divider ----------
+    # ---------- Step 1 & 2 with Vertical Divider (Remains the same) ----------
     left_col, divider_col, right_col = st.columns([3, 0.2, 3])
 
     with left_col:
@@ -30,7 +35,6 @@ if uploaded_file:
         selected_features = st.multiselect("Select one or more feature columns", options=all_columns)
 
     with divider_col:
-        # Dashed vertical divider
         st.markdown("""
                <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
                    <div style="border-left: 1.5px dashed #295e27; height: 250px;"></div>
@@ -46,29 +50,21 @@ if uploaded_file:
     st.markdown("<h3>Step 3: Start Algorithm Scanning</h3>", unsafe_allow_html=True)
 
     btn_cols = st.columns([2.2, 1, 2])
-    run_clicked = btn_cols[1].button("🔍 Start Algo Scanning")
+    run_clicked = btn_cols[1].button("▶️ Start Algo Scanning", key="main_run_button")
 
-    # Calling Decision Tree
-    # from DecisionTreeDisplay import DecisionTreeUI
-    #
-    # ui = DecisionTreeUI(
-    #     df,
-    #     tagged_column,
-    #     selected_features
-    # )
-    # ui.render()
-    #################
-
+    # --- MAIN LOGIC EXECUTION ---
     if run_clicked:
         if not selected_features:
             st.warning("Please select at least one feature to proceed.")
         elif tagged_column == "None":
-            st.warning("Please select a tagged column to run classification.")
+            st.warning("Please select a tagged column to run classification/regression.")
         else:
-            st.success("🔄 Running Algorithm...")
+            st.success("✅ Running Algorithm...")
+
             # Linear Regression
             st.subheader("Linear Regression")
             with st.expander("Linear Regression"):
+                # Assuming myRegression and related functions exist
                 X, y, cleaned_df = clean_regression_data(df, selected_features, tagged_column)
                 model = myRegression.MyRegression(cleaned_df, X, y)
                 model.train_models()
@@ -80,15 +76,8 @@ if uploaded_file:
                 download_predictions(model,selected_features, tagged_column)
 
             # Decision Tree
-
-            from DecisionTreeModel import DecisionTreeModel
-            DT_model = DecisionTreeModel(df, selected_features, tagged_column)
-            DT_result = DT_model.train().get_results()
-            print(DT_result)
-
-            from DecisionTreeDisplay import DisplayDT
-            DisplayDT(DT_result, df, selected_features, tagged_column)
+            DisplayDT(df, selected_features, tagged_column)
 
 
 else:
-    st.info("👈 Upload a file to begin.")
+    st.info("ℹ️ Upload a file to begin.")

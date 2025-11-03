@@ -6,19 +6,18 @@ import io
 
 def display_metrics(metrics):
     """Display metrics for Linear, Lasso, and Ridge from MyRegression."""
-    st.subheader("📊 Model Performance Metrics")
-    col1, col2, col3, col4, col5 = st.columns(5)
+    st.subheader("Model Performance Metrics")
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Linear R²", round(metrics["linear_r2"], 4))
-        st.metric("Variance", round(metrics["variance"], 4))
+        st.metric("Linear RMSE", round(metrics["rmse"], 4))
     with col2:
         st.metric("Lasso R²", round(metrics["lasso_r2"], 4))
         st.metric("Bias", round(metrics["bias"], 4))
     with col3:
         st.metric("Ridge R²", round(metrics["ridge_r2"], 4))
+        st.metric("Variance", round(metrics["variance"], 4))
     with col4:
-        st.metric("Linear RMSE", round(metrics["rmse"], 4))
-    with col5:
         st.metric("MSE", round(metrics["mse"], 4))
 
 import numpy as np
