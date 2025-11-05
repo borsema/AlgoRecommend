@@ -2,12 +2,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from sklearn import tree
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-import matplotlib.pyplot as plt
 import graphviz
 import re
 import streamlit.components.v1 as components
 from DecisionTreeModel import DecisionTreeModel
+from plot_utils import plot_decision_boundaries, plot_regression_surfaces
 
 
 @st.fragment
@@ -20,90 +19,102 @@ def DisplayDT(df: pd.DataFrame, selected_features: list, tagged_column: str):
         selected_features (list): List of selected feature column names.
         tagged_column (str): Target column name.
     """
-    st.subheader("🌲 Decision Tree Model")
+    with st.expander("🌲 Decision Tree", expanded=True):
 
-    # --- Step 1: Train initial model with default settings ---
-    model = DecisionTreeModel(df, selected_features, tagged_column)
-    st.session_state.dt_result = model.train(max_depth=7, random_state=42).get_results()
-    current_result = st.session_state.dt_result
+        # --- Step 1: Train initial model with default settings ---
+        model = DecisionTreeModel(df, selected_features, tagged_column)
+        st.session_state.dt_result = model.train(max_depth=7, random_state=42).get_results()
+        current_result = st.session_state.dt_result
 
-    model_type = str(current_result["model_type"]).lower()
-    st.info(f"**Detected Model Type:** {current_result['model_type']}")
+        model_type = str(current_result["model_type"]).lower()
+        st.info(f"**Detected Model Type:** {current_result['model_type']}")
 
-    # --- Step 2: Define default hyperparameters ---
-    default_params = {
-        "criterion": "gini" if "class" in model_type else "squared_error",
-        "splitter": "best",
-        "max_features": None,
-        "max_depth": 5,
-        "random_state": 42,
-        "max_leaf_nodes": None,
-        "min_samples_split": 2,
-        "min_samples_leaf": 1,
-        "min_impurity_decrease": 0.0,
-    }
+        # --- Step 2: Define default hyperparameters ---
+        default_params = {
+            "criterion": "gini" if "class" in model_type else "squared_error",
+            "splitter": "best",
+            "max_features": None,
+            "max_depth": 5,
+            "random_state": 42,
+            "max_leaf_nodes": None,
+            "min_samples_split": 2,
+            "min_samples_leaf": 1,
+            "min_impurity_decrease": 0.0,
+        }
 
-    if "dt_params" not in st.session_state:
-        st.session_state.dt_params = default_params.copy()
+        # if "dt_params" not in st.session_state:
+        #     st.session_state.dt_params = default_params.copy()
 
-    params = st.session_state.dt_params
+        if "dt_params" not in st.session_state:
+            st.session_state.dt_params = default_params.copy()
+        else:
+            # Validate criterion
+            current_criterion = st.session_state.dt_params.get("criterion", "")
+            if ("class" in model_type and current_criterion not in ["gini", "entropy", "log_loss"]) or \
+                    ("class" not in model_type and current_criterion not in ["squared_error", "friedman_mse",
+                                                                             "absolute_error", "poisson"]):
+                st.session_state.dt_params = default_params.copy()
+                st.toast("🔄 Reset incompatible Decision Tree parameters for new model type", icon="⚙️")
 
-    # --- Step 3: Hyperparameter tuning form ---
-    with st.expander(f"⚙️ {current_result['model_type']} - Hyperparameter Tuning", expanded=True):
-        with st.form("dt_param_form"):
-            st.markdown("### Adjust Hyperparameters")
 
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                new_criterion = st.selectbox(
-                    "Criterion",
-                    ["gini", "entropy", "log_loss"] if "class" in model_type
-                    else ["squared_error", "friedman_mse", "absolute_error", "poisson"],
-                    index=0,
-                )
-            with col2:
-                new_splitter = st.selectbox("Splitter", ["best", "random"], index=0)
-            with col3:
-                new_max_features = st.selectbox("Max Features", [None, "sqrt", "log2"], index=0)
+        params = st.session_state.dt_params
 
-            col4, col5, col6 = st.columns(3)
-            with col4:
-                new_max_depth = st.number_input("Max Depth", 1, 50, value=5)
-            with col5:
-                new_random_state = st.number_input("Random State", 0, 9999, value=42, step=1)
-            with col6:
-                new_max_leaf_nodes = st.number_input("Max Leaf Nodes (0 = None)", 0, 1000, value=0, step=1)
-                if new_max_leaf_nodes == 0:
-                    new_max_leaf_nodes = None
+        # --- Step 3: Hyperparameter tuning form ---
+        with st.expander(f"⚙️ {current_result['model_type']} - Hyperparameter Tuning", expanded=False):
+            with st.form("dt_param_form"):
+                st.markdown("### Adjust Hyperparameters")
 
-            col7, col8, col9 = st.columns(3)
-            with col7:
-                new_min_samples_split = st.slider("Min Samples Split", 2, 100, 2)
-            with col8:
-                new_min_samples_leaf = st.slider("Min Samples Leaf", 1, 50, 1)
-            with col9:
-                new_min_impurity_decrease = st.slider("Min Impurity Decrease", 0.0, 1.0, 0.0, step=0.01)
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    new_criterion = st.selectbox(
+                        "Criterion",
+                        ["gini", "entropy", "log_loss"] if "class" in model_type
+                        else ["squared_error", "friedman_mse", "absolute_error", "poisson"],
+                        index=0,
+                    )
+                with col2:
+                    new_splitter = st.selectbox("Splitter", ["best", "random"], index=0)
+                with col3:
+                    new_max_features = st.selectbox("Max Features", [None, "sqrt", "log2"], index=0)
 
-            submit = st.form_submit_button("🔄 Re-run Decision Tree")
+                col4, col5, col6 = st.columns(3)
+                with col4:
+                    new_max_depth = st.number_input("Max Depth", 1, 50, value=5)
+                with col5:
+                    new_random_state = st.number_input("Random State", 0, 9999, value=42, step=1)
+                with col6:
+                    new_max_leaf_nodes = st.number_input("Max Leaf Nodes (0 = None)", 0, 1000, value=0, step=1)
+                    if new_max_leaf_nodes == 0:
+                        new_max_leaf_nodes = None
 
-            if submit:
-                new_params = {
-                    "criterion": new_criterion,
-                    "splitter": new_splitter,
-                    "max_features": new_max_features,
-                    "max_depth": new_max_depth,
-                    "random_state": new_random_state,
-                    "max_leaf_nodes": new_max_leaf_nodes,
-                    "min_samples_split": new_min_samples_split,
-                    "min_samples_leaf": new_min_samples_leaf,
-                    "min_impurity_decrease": new_min_impurity_decrease,
-                }
+                col7, col8, col9 = st.columns(3)
+                with col7:
+                    new_min_samples_split = st.slider("Min Samples Split", 2, 100, 2)
+                with col8:
+                    new_min_samples_leaf = st.slider("Min Samples Leaf", 1, 50, 1)
+                with col9:
+                    new_min_impurity_decrease = st.slider("Min Impurity Decrease", 0.0, 1.0, 0.0, step=0.01)
 
-                st.session_state.dt_params = new_params
-                model = DecisionTreeModel(df, selected_features, tagged_column)
-                st.session_state.dt_result = model.train(**new_params).get_results()
-                current_result = st.session_state.dt_result
-                st.toast("✅ Decision Tree retrained successfully!", icon="🚀")
+                submit = st.form_submit_button("🔄 Re-run Decision Tree")
+
+                if submit:
+                    new_params = {
+                        "criterion": new_criterion,
+                        "splitter": new_splitter,
+                        "max_features": new_max_features,
+                        "max_depth": new_max_depth,
+                        "random_state": new_random_state,
+                        "max_leaf_nodes": new_max_leaf_nodes,
+                        "min_samples_split": new_min_samples_split,
+                        "min_samples_leaf": new_min_samples_leaf,
+                        "min_impurity_decrease": new_min_impurity_decrease,
+                    }
+
+                    st.session_state.dt_params = new_params
+                    model = DecisionTreeModel(df, selected_features, tagged_column)
+                    st.session_state.dt_result = model.train(**new_params).get_results()
+                    current_result = st.session_state.dt_result
+                    st.toast("✅ Decision Tree retrained successfully!", icon="🚀")
 
         # --- Step 4: Display Model Metrics ---
         st.markdown("---")
@@ -117,8 +128,9 @@ def DisplayDT(df: pd.DataFrame, selected_features: list, tagged_column: str):
                 formatted_value = f"{value:.4f}" if isinstance(value, (float, np.floating)) else value
                 st.metric(label=key.upper(), value=formatted_value)
 
+        ########################################## Graphical Representation of data #############################################
         # --- Step 5: Tree Graph Visualization ---
-        with st.expander("🌳 Decision Tree Graph", expanded=False):
+        with st.expander("🌳 Decision Tree Graph", expanded=True):
             model = current_result["model"]
             depth = model.get_depth()
             scale_factor = 0.5
@@ -195,6 +207,29 @@ def DisplayDT(df: pd.DataFrame, selected_features: list, tagged_column: str):
                     file_name="decision_tree_full.svg",
                     mime="image/svg+xml",
                 )
+
+        ########################################## 2D Scatter Plot #############################################
+
+            top_features_df = current_result["feature_importance"][["feature", "importance"]].head(4)
+            if len(top_features_df) < 2:
+                st.info("⚠️ Need at least two valid features to plot decision boundaries.")
+            else:
+                st.info(f"Top priority features (max 04): {{ {', '.join(f'{f}: {i:.5f}' for f, i in zip(top_features_df.feature, top_features_df.importance))} }}")
+            top_features = top_features_df["feature"].tolist()
+            # top_features = current_result["feature_importance"]["feature"].head(4).tolist() if len(selected_features) > 4 else selected_features
+            if "class" in model_type:
+                figs = plot_decision_boundaries(df, df[tagged_column], current_result["class_names"], top_features, **st.session_state.dt_params)
+                cols = st.columns(6)
+                for i, fig in enumerate(figs):
+                    with cols[i % 6]:
+                        st.pyplot(fig, use_container_width=True)
+            else:
+                figs = plot_regression_surfaces(df, df[tagged_column], top_features, **st.session_state.dt_params)
+                cols = st.columns(6)
+                for i, fig in enumerate(figs):
+                    with cols[i % 6]:
+                        st.pyplot(fig, use_container_width=True)
+
 
 
 '''

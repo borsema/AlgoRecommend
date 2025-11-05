@@ -31,6 +31,7 @@ class DecisionTreeModel:
         self.metrics = {}
         self.y_pred = None
         self.class_names = None  # Store original class names for classification
+        self.feature_importance = None
 
     def _detect_task_type(self) -> str:
         """Detect whether the task is classification or regression."""
@@ -85,6 +86,13 @@ class DecisionTreeModel:
         self.model.fit(X_train, y_train)
         self.y_pred = self.model.predict(X_test)
         self._evaluate(y_test, self.y_pred)
+
+        # feature importances
+        self.feature_importance = pd.DataFrame({
+            "feature": self.independent_cols,
+            "importance": self.model.feature_importances_
+        }).sort_values(by="importance", ascending=False)
+
         return self
 
     def _evaluate(self, y_test, y_pred):
@@ -116,6 +124,7 @@ class DecisionTreeModel:
             "metrics": self.metrics,
             "prediction": self.y_pred,
             "class_names": self.class_names,
+            "feature_importance": getattr(self, "feature_importance", None)
         }
 
 
