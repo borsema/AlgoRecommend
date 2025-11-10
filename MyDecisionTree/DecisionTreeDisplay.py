@@ -1,82 +1,61 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-from sklearn import tree
 import graphviz
 import re
+from MyDecisionTree.myDecisionTreeCleaning import clean_and_encode
+from MyDecisionTree.DecisionTreeModel import DecisionTreeModel
+from MyDecisionTree.plot_utils import plot_decision_boundaries, plot_regression_surfaces
+from sklearn import tree
 import streamlit.components.v1 as components
-from DecisionTreeModel import DecisionTreeModel
-from plot_utils import plot_decision_boundaries, plot_regression_surfaces
-
+import numpy as np
 
 @st.fragment
-def DisplayDT(df: pd.DataFrame, selected_features: list, tagged_column: str):
-    """
-    Streamlit component for visualizing and tuning a Decision Tree model.
-
-    Args:
-        df (pd.DataFrame): Input dataset.
-        selected_features (list): List of selected feature column names.
-        tagged_column (str): Target column name.
-    """
+def DisplayDT(df, features, target):
+    X, y, df_clean, encoder = clean_and_encode(df, features, target)
+    if X is None:
+        return
+    """Main Streamlit component for Decision Tree visualization and tuning."""
     with st.expander("🌲 Decision Tree", expanded=True):
 
-        # --- Step 1: Train initial model with default settings ---
-        model = DecisionTreeModel(df, selected_features, tagged_column)
+        # Step 1: Train initial model
+        model = DecisionTreeModel(X, y, list(X.columns), target, encoder)
         st.session_state.dt_result = model.train(max_depth=7, random_state=42).get_results()
         current_result = st.session_state.dt_result
-
         model_type = str(current_result["model_type"]).lower()
         st.info(f"**Detected Model Type:** {current_result['model_type']}")
 
-        # --- Step 2: Define default hyperparameters ---
+        # Step 2: Define default hyperparameters
         default_params = {
             "criterion": "gini" if "class" in model_type else "squared_error",
             "splitter": "best",
-            "max_features": None,
             "max_depth": 5,
-            "random_state": 42,
-            "max_leaf_nodes": None,
             "min_samples_split": 2,
             "min_samples_leaf": 1,
-            "min_impurity_decrease": 0.0,
+            "max_features": None,
+            "random_state": 42,
+            "max_leaf_nodes": None,
+            "min_impurity_decrease": 0.0
         }
-
-        # if "dt_params" not in st.session_state:
-        #     st.session_state.dt_params = default_params.copy()
 
         if "dt_params" not in st.session_state:
             st.session_state.dt_params = default_params.copy()
-        else:
-            # Validate criterion
-            current_criterion = st.session_state.dt_params.get("criterion", "")
-            if ("class" in model_type and current_criterion not in ["gini", "entropy", "log_loss"]) or \
-                    ("class" not in model_type and current_criterion not in ["squared_error", "friedman_mse",
-                                                                             "absolute_error", "poisson"]):
-                st.session_state.dt_params = default_params.copy()
-                st.toast("🔄 Reset incompatible Decision Tree parameters for new model type", icon="⚙️")
+        current_criterion = st.session_state.dt_params.get("criterion", "")
 
+        if ("class" in model_type and current_criterion not in ["gini", "entropy", "log_loss"]) or ("class" not in model_type and current_criterion not in ["squared_error", "friedman_mse","absolute_error", "poisson"]):
+            st.session_state.dt_params = default_params.copy()
+            st.toast("🔄 Reset incompatible Decision Tree parameters for new model type", icon="⚙️")
+            params = st.session_state.dt_params
 
-        params = st.session_state.dt_params
-
-        # --- Step 3: Hyperparameter tuning form ---
+        # Step 3: Hyperparameter tuning form
         with st.expander(f"⚙️ {current_result['model_type']} - Hyperparameter Tuning", expanded=False):
             with st.form("dt_param_form"):
                 st.markdown("### Adjust Hyperparameters")
-
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    new_criterion = st.selectbox(
-                        "Criterion",
-                        ["gini", "entropy", "log_loss"] if "class" in model_type
-                        else ["squared_error", "friedman_mse", "absolute_error", "poisson"],
-                        index=0,
-                    )
+                    new_criterion = st.selectbox( "Criterion", ["gini", "entropy", "log_loss"] if "class" in model_type else ["squared_error", "friedman_mse", "absolute_error", "poisson"], index=0)
                 with col2:
                     new_splitter = st.selectbox("Splitter", ["best", "random"], index=0)
                 with col3:
                     new_max_features = st.selectbox("Max Features", [None, "sqrt", "log2"], index=0)
-
                 col4, col5, col6 = st.columns(3)
                 with col4:
                     new_max_depth = st.number_input("Max Depth", 1, 50, value=5)
@@ -86,7 +65,6 @@ def DisplayDT(df: pd.DataFrame, selected_features: list, tagged_column: str):
                     new_max_leaf_nodes = st.number_input("Max Leaf Nodes (0 = None)", 0, 1000, value=0, step=1)
                     if new_max_leaf_nodes == 0:
                         new_max_leaf_nodes = None
-
                 col7, col8, col9 = st.columns(3)
                 with col7:
                     new_min_samples_split = st.slider("Min Samples Split", 2, 100, 2)
@@ -96,7 +74,6 @@ def DisplayDT(df: pd.DataFrame, selected_features: list, tagged_column: str):
                     new_min_impurity_decrease = st.slider("Min Impurity Decrease", 0.0, 1.0, 0.0, step=0.01)
 
                 submit = st.form_submit_button("🔄 Re-run Decision Tree")
-
                 if submit:
                     new_params = {
                         "criterion": new_criterion,
@@ -107,128 +84,149 @@ def DisplayDT(df: pd.DataFrame, selected_features: list, tagged_column: str):
                         "max_leaf_nodes": new_max_leaf_nodes,
                         "min_samples_split": new_min_samples_split,
                         "min_samples_leaf": new_min_samples_leaf,
-                        "min_impurity_decrease": new_min_impurity_decrease,
-                    }
+                        "min_impurity_decrease": new_min_impurity_decrease, }
 
                     st.session_state.dt_params = new_params
-                    model = DecisionTreeModel(df, selected_features, tagged_column)
+                    model = DecisionTreeModel(X, y, list(X.columns), target, encoder)
+
                     st.session_state.dt_result = model.train(**new_params).get_results()
-                    current_result = st.session_state.dt_result
                     st.toast("✅ Decision Tree retrained successfully!", icon="🚀")
+                current_result = st.session_state.dt_result
 
-        # --- Step 4: Display Model Metrics ---
-        st.markdown("---")
+        # Step 4: Display Model Metrics st.markdown("---")
         st.markdown("### 📊 Model Metrics")
-
         metrics = current_result["metrics"]
         cols = st.columns(len(metrics))
-
         for i, (key, value) in enumerate(metrics.items()):
             with cols[i]:
                 formatted_value = f"{value:.4f}" if isinstance(value, (float, np.floating)) else value
                 st.metric(label=key.upper(), value=formatted_value)
 
-        ########################################## Graphical Representation of data #############################################
-        # --- Step 5: Tree Graph Visualization ---
-        with st.expander("🌳 Decision Tree Graph", expanded=True):
-            model = current_result["model"]
-            depth = model.get_depth()
-            scale_factor = 0.5
-            is_classifier = "class" in model_type
+        # Step 5: Graphical Representations
+        with st.expander("📈 Graphical Representations", expanded=True):
+            display_tree_graph(current_result["model"], list(X.columns), current_result['model_type'], current_result)
+            display_2d_scatter(X, y, current_result, current_result['model_type'])
 
-            # ✅ Use original categorical names for classification
-            class_names = None
-            if is_classifier:
-                class_names = current_result.get("class_names", None)
-                if not class_names and hasattr(model, "classes_"):
-                    class_names = [str(c) for c in model.classes_]
 
-            # Generate preview tree (up to depth 4)
-            preview_depth = 4 if depth > 4 else None
-            preview_dot = tree.export_graphviz(
+def display_tree_graph(model, independent_cols, model_type, current_result):
+        """Visualize Decision Tree graphically."""
+        depth = model.get_depth()
+        scale_factor = 0.5
+        is_classifier = "class" in model_type
+
+        class_names = None
+        if is_classifier:
+            class_names = current_result.get("class_names", None)
+        if not class_names and hasattr(model, "classes_"):
+            class_names = [str(c) for c in model.classes_]
+        # Preview Tree
+        preview_depth = 4 if depth > 4 else None
+        preview_dot = tree.export_graphviz(
+            model,
+            out_file=None,
+            feature_names=independent_cols,
+            class_names=class_names if is_classifier else None,
+            filled=True,
+            rounded=True,
+            special_characters=True,
+            proportion=True,
+            precision=2,
+            max_depth=preview_depth,
+            fontname="Helvetica", )
+
+        preview_graph = graphviz.Source(preview_dot, format="svg")
+        preview_svg = preview_graph.pipe(format="svg").decode("utf-8").strip()
+        preview_svg = re.sub(r"<title>.*?</title>", "", preview_svg, flags=re.DOTALL).strip()
+        preview_html = f""" <div 
+        style="width:100%;height:320px;overflow:auto;background-color:#fafafa;display:flex;justify-content:center;"> 
+        <div style='transform:scale({scale_factor});transform-origin:top center;'> {preview_svg} 
+        </div> 
+        </div> """
+        st.markdown("### 🌳 Decision Tree (Preview)")
+        st.caption("Showing top 4 levels. Expand below to view the full tree.")
+        components.html(preview_html, height=360, scrolling=False)
+
+        # Full Tree
+        with st.expander("🔍 View Full Tree", expanded=False):
+            full_dot = tree.export_graphviz(
                 model,
                 out_file=None,
-                feature_names=selected_features,
+                feature_names=independent_cols,
                 class_names=class_names if is_classifier else None,
                 filled=True,
                 rounded=True,
                 special_characters=True,
                 proportion=True,
                 precision=2,
-                max_depth=preview_depth,
-                fontname="Helvetica",
-            )
+                fontname="Helvetica", )
+            full_graph = graphviz.Source(full_dot, format="svg")
+            full_svg_bytes = full_graph.pipe(format="svg")
+            full_svg = full_svg_bytes.decode("utf-8").strip()
+            full_svg = re.sub(r"<title>.*?</title>", "", full_svg, flags=re.DOTALL).strip()
+            full_html = f""" <div style="width:100%;height:700px;overflow:auto;border:1px solid #ccc;background-color:#fafafa;"> {full_svg} </div> """
+            components.html(full_html, height=720, scrolling=False)
+            st.download_button( label="⬇️ Download Full Tree (SVG)", data=full_svg_bytes, file_name="decision_tree_full.svg", mime="image/svg+xml", )
 
-            preview_graph = graphviz.Source(preview_dot, format="svg")
-            preview_svg = preview_graph.pipe(format="svg").decode("utf-8").strip()
-            preview_svg = re.sub(r"<title>.*?</title>", "", preview_svg, flags=re.DOTALL).strip()
+def display_2d_scatter(X, y, current_result, model_type):
+    """Visualize 2D scatter / decision boundaries for top features."""
+    top_features_df = current_result["feature_importance"][["feature", "importance"]].head(4)
+    if len(top_features_df) < 2:
+        st.info("⚠️ Need at least two valid features to plot decision boundaries.")
+        return
+    st.info( f"Top priority features (max 04): {{ {', '.join(f'{f}: {i:.5f}' for f, i in zip(top_features_df.feature, top_features_df.importance))} }}" )
+    top_features = top_features_df["feature"].tolist()
+    if "class" in model_type:
+        # figs = plot_decision_boundaries(X, y, top_features, class_names=current_result["class_names"],params= **st.session_state.dt_params)
+        figs = plot_decision_boundaries(
+            X,
+            y,
+            top_features=top_features,
+            params=st.session_state.dt_params,  # pass as a dict
+            class_names=current_result["class_names"]
+        )
+    else:
+        # figs = plot_regression_surfaces(X, y, top_features, **st.session_state.dt_params)
+        figs = plot_regression_surfaces(
+            X,
+            y,
+            top_features=top_features,
+            params=st.session_state.dt_params  # pass as dict
+        )
+    if figs == 1:
+        st.info("No Valid Feature")
+        return
+    cols = st.columns(6)
+    for i, fig in enumerate(figs):
+        with cols[i % 6]:
+            st.pyplot(fig, use_container_width=True)
 
-            st.markdown("### 🌳 Decision Tree (Preview)")
-            st.caption("Showing top 4 levels. Expand below to view the full tree.")
-            preview_html = f"""
-            <div style="width:100%;height:320px;overflow:auto;background-color:#fafafa;display:flex;justify-content:center;">
-                <div style='transform:scale({scale_factor});transform-origin:top center;'>
-                    {preview_svg}
-                </div>
-            </div>
-            """
-            components.html(preview_html, height=360, scrolling=False)
 
-            # Full tree visualization
-            with st.expander("🔍 View Full Tree", expanded=False):
-                full_dot = tree.export_graphviz(
-                    model,
-                    out_file=None,
-                    feature_names=selected_features,
-                    class_names=class_names if is_classifier else None,
-                    filled=True,
-                    rounded=True,
-                    special_characters=True,
-                    proportion=True,
-                    precision=2,
-                    fontname="Helvetica",
-                )
+    # # Metrics
+    # st.markdown("### 📊 Model Metrics")
+    # cols = st.columns(len(results['metrics']))
+    # for i, (k, v) in enumerate(results['metrics'].items()):
+    #     with cols[i]:
+    #         st.metric(label=k.upper(), value=f"{v:.4f}" if isinstance(v, float) else v)
 
-                full_graph = graphviz.Source(full_dot, format="svg")
-                full_svg_bytes = full_graph.pipe(format="svg")
-                full_svg = full_svg_bytes.decode("utf-8").strip()
-                full_svg = re.sub(r"<title>.*?</title>", "", full_svg, flags=re.DOTALL).strip()
-
-                full_html = f"""
-                <div style="width:100%;height:700px;overflow:auto;border:1px solid #ccc;background-color:#fafafa;">
-                    {full_svg}
-                </div>
-                """
-                components.html(full_html, height=720, scrolling=False)
-
-                st.download_button(
-                    label="⬇️ Download Full Tree (SVG)",
-                    data=full_svg_bytes,
-                    file_name="decision_tree_full.svg",
-                    mime="image/svg+xml",
-                )
-
-        ########################################## 2D Scatter Plot #############################################
-
-            top_features_df = current_result["feature_importance"][["feature", "importance"]].head(4)
-            if len(top_features_df) < 2:
-                st.info("⚠️ Need at least two valid features to plot decision boundaries.")
-            else:
-                st.info(f"Top priority features (max 04): {{ {', '.join(f'{f}: {i:.5f}' for f, i in zip(top_features_df.feature, top_features_df.importance))} }}")
-            top_features = top_features_df["feature"].tolist()
-            # top_features = current_result["feature_importance"]["feature"].head(4).tolist() if len(selected_features) > 4 else selected_features
-            if "class" in model_type:
-                figs = plot_decision_boundaries(df, df[tagged_column], current_result["class_names"], top_features, **st.session_state.dt_params)
-                cols = st.columns(6)
-                for i, fig in enumerate(figs):
-                    with cols[i % 6]:
-                        st.pyplot(fig, use_container_width=True)
-            else:
-                figs = plot_regression_surfaces(df, df[tagged_column], top_features, **st.session_state.dt_params)
-                cols = st.columns(6)
-                for i, fig in enumerate(figs):
-                    with cols[i % 6]:
-                        st.pyplot(fig, use_container_width=True)
+    # Tree visualization
+#     _display_tree_graph(results['model'], list(X.columns), results['model_type'], results.get('class_names'))
+#
+#     # 2D scatter / decision boundaries
+#     top_features = results['feature_importance']['feature'].head(4).tolist()
+#     figs = plot_decision_boundaries(X, y, top_features, {}, results.get('class_names')) if results['model_type'] == "classification" else plot_regression_surfaces(X, y, top_features, {})
+#     for fig in figs:
+#         st.pyplot(fig, use_container_width=True)
+#
+# def _display_tree_graph(model, features, model_type, class_names=None):
+#     preview_dot = tree.export_graphviz(
+#         model, out_file=None, feature_names=features,
+#         class_names=class_names if class_names else None,
+#         filled=True, rounded=True, proportion=True, precision=2
+#     )
+#     graph = graphviz.Source(preview_dot, format="svg")
+#     svg = graph.pipe(format="svg").decode()
+#     svg = re.sub(r"<title>.*?</title>", "", svg, flags=re.DOTALL)
+#     components.html(f"<div style='overflow:auto;'>{svg}</div>", height=400)
 
 
 

@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 from blue_theme import apply_blue_theme
-import myRegression # Assuming this file exists
-from MyRegressionCleaning import clean_regression_data # Assuming this file exists
-from myRegression_display import display_metrics, plot_all_graphs_horizontal, download_predictions # Assuming this file exists
+from MyLinearRegression import myRegression
+from MyLinearRegression.myRegressionCleaning import clean_regression_data # Assuming this file exists
+from MyLinearRegression.myRegression_display import display_metrics, plot_all_graphs_horizontal, download_predictions # Assuming this file exists
 
 # Import the fragment function
-from DecisionTreeDisplay import DisplayDT
+from MyDecisionTree.DecisionTreeDisplay import DisplayDT
 
 
 # ---------- Theme & Config ----------
@@ -27,7 +27,7 @@ if uploaded_file:
     st.subheader("👀 Data Preview")
     st.dataframe(df.head(), use_container_width=True)
 
-    # ---------- Step 1 & 2 with Vertical Divider (Remains the same) ----------
+    # ---------- Step 1 & 2 with Vertical Divider----------
     left_col, divider_col, right_col = st.columns([3, 0.2, 3])
 
     with left_col:
@@ -64,7 +64,6 @@ if uploaded_file:
             # Linear Regression
             st.subheader("Linear Regression")
             with st.expander("Linear Regression"):
-                # Assuming myRegression and related functions exist
                 X, y, cleaned_df = clean_regression_data(df, selected_features, tagged_column)
                 model = myRegression.MyRegression(cleaned_df, X, y)
                 model.train_models()

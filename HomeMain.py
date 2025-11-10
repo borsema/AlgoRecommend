@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
 from blue_theme import apply_blue_theme
+from MyLinearRegression.myRegression_display import DisplayRegression
+
 # Import the fragment function
-from DecisionTreeDisplay import DisplayDT
+from MyDecisionTree.DecisionTreeDisplay import DisplayDT
 
 
 # ---------- Theme & Config ----------
@@ -10,7 +12,7 @@ apply_blue_theme()
 st.set_page_config(page_title="Algorithm Recommendation Tool", layout="wide")
 
 # ---------- Header ----------
-st.markdown("<h1 style='text-align: center;'>⋈ Algorithm Recommendation Tool</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'> ⋈ Algorithm Recommendation Tool ⋈</h1>", unsafe_allow_html=True)
 
 # ---------- Upload Section ----------
 with st.expander("📁 Upload CSV File", expanded=True):
@@ -23,12 +25,12 @@ if uploaded_file:
     st.subheader("👀 Data Preview")
     st.dataframe(df.head(), use_container_width=True)
 
-    # ---------- Step 1 & 2 with Vertical Divider (Remains the same) ----------
+    # ---------- Step 1 & 2 with Vertical Divider----------
     left_col, divider_col, right_col = st.columns([3, 0.2, 3])
 
     with left_col:
-        st.markdown("<h3>Step 1: Select Feature Columns (Mandatory)</h3>", unsafe_allow_html=True)
-        selected_features = st.multiselect("Select one or more feature columns", options=all_columns)
+        st.markdown("<h3>Step 1: Select Feature columns</h3>", unsafe_allow_html=True)
+        selected_features = st.multiselect("Select one or more feature columns (Mandatory)", options=all_columns)
 
     with divider_col:
         st.markdown("""
@@ -38,12 +40,12 @@ if uploaded_file:
            """, unsafe_allow_html=True)
 
     with right_col:
-        st.markdown("<h3>Step 2: Select Tagged Column (Optional)</h3>", unsafe_allow_html=True)
+        st.markdown("<h3>Step 2: Select Tagged column</h3>", unsafe_allow_html=True)
         remaining_cols = [col for col in all_columns if col not in selected_features]
-        tagged_column = st.selectbox("Select a tagged column (optional)", options=["None"] + remaining_cols)
+        tagged_column = st.selectbox("Select a tagged column (Mandatory)", options=["None"] + remaining_cols)
 
     # ---------- Step 3 ----------
-    st.markdown("<h3>Step 3: Start Algorithm Scanning</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Step 3: Start Algorithm Scanning</h3>", unsafe_allow_html=True)
 
     btn_cols = st.columns([2.2, 1, 2])
     run_clicked = btn_cols[1].button("▶️ Start Algo Scanning", key="main_run_button")
@@ -57,21 +59,12 @@ if uploaded_file:
         else:
             st.success("✅ Running Algorithm...")
 
-            # # Linear Regression
-            # st.subheader("Linear Regression")
-            # with st.expander("Linear Regression"):
-            #     # Assuming myRegression and related functions exist
-            #     X, y, cleaned_df = clean_regression_data(df, selected_features, tagged_column)
-            #     model = myRegression.MyRegression(cleaned_df, X, y)
-            #     model.train_models()
-            #     model.predict()
-            #     metrics = model.calculate_metrics()
-            #
-            #     display_metrics(metrics)
-            #     plot_all_graphs_horizontal(model, cleaned_df, tagged_column)
-            #     download_predictions(model,selected_features, tagged_column)
+            # Linear Regression
+            st.subheader("Linear Regression")
+            DisplayRegression(df, selected_features, tagged_column)
 
             # Decision Tree
+            st.subheader("Decision Tree")
             DisplayDT(df, selected_features, tagged_column)
 
 

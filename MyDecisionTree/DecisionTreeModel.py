@@ -9,126 +9,54 @@ from sklearn.metrics import (
 
 
 class DecisionTreeModel:
-    """
-    Unified Decision Tree model for Classification and Regression.
-    Automatically detects the problem type based on the target column.
-    """
-
-    def __init__(self, df: pd.DataFrame, independent_cols: list, dependent_col: str):
-        """
-        Initialize the model with dataset and columns.
-
-        Args:
-            df (pd.DataFrame): Input dataset.
-            independent_cols (list): Independent (feature) column names.
-            dependent_col (str): Dependent (target) column name.
-        """
-        self.df = df.dropna(subset=independent_cols + [dependent_col])
-        self.independent_cols = independent_cols
-        self.dependent_col = dependent_col
-        self.model = None
+    def __init__(self, X, y, features, target, encoder):
+        self.X = X
+        self.y = y
+        self.features = features
+        self.target = target
+        self.encoder = encoder
         self.task_type = self._detect_task_type()
-        self.metrics = {}
-        self.y_pred = None
-        self.class_names = None  # Store original class names for classification
-        self.feature_importance = None
+        self.model = None
+        self.class_names = encoder.class_names
 
-    def _detect_task_type(self) -> str:
-        """Detect whether the task is classification or regression."""
-        y = self.df[self.dependent_col]
-
-        # 🧠 Improved logic:
-        # If numeric but has few unique values (<=15), treat as classification
-        if pd.api.types.is_numeric_dtype(y):
-            if y.nunique() <= 15:
-                return "Decision Tree Classifier"
-            else:
-                return "Decision Tree Regressor"
-        else:
-            # Non-numeric → definitely classification
-            return "Decision Tree Classifier"
-
-    def _prepare_data(self):
-        """Prepare and encode data, then split into training and testing sets."""
-        X = self.df[self.independent_cols].copy()
-        y = self.df[self.dependent_col].copy()
-
-        # Encode categorical features
-        for c in X.columns:
-            if not pd.api.types.is_numeric_dtype(X[c]):
-                X[c] = X[c].astype("category").cat.codes
-
-        # Encode target
-        if self.task_type == "Decision Tree Classifier":
-            if not pd.api.types.is_numeric_dtype(y):
-                y = y.astype("category")
-                self.class_names = list(y.cat.categories)
-                y = y.cat.codes
-            else:
-                # Numeric but classification (e.g., 0.1, 1.1, 2.1)
-                unique_vals = np.unique(y)
-                self.class_names = [str(v) for v in unique_vals]
-                # Convert to integer codes (to make it compatible with sklearn)
-                y = pd.Categorical(y, categories=unique_vals).codes
-        else:
-            self.class_names = None  # Regression doesn’t need class names
-
-        return train_test_split(X, y, test_size=0.2, random_state=42)
+    def _detect_task_type(self):
+        if pd.api.types.is_numeric_dtype(self.y) and len(np.unique(self.y)) > 20:
+            return "regression"
+        return "classification"
 
     def train(self, **params):
-        """Train the decision tree model with given hyperparameters."""
-        X_train, X_test, y_train, y_test = self._prepare_data()
-        if self.task_type == "Decision Tree Classifier":
-            self.model = DecisionTreeClassifier(**params)
-        else:
-            self.model = DecisionTreeRegressor(**params)
+        X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=42)
 
+        self.model = DecisionTreeClassifier(**params) if self.task_type == "classification" else DecisionTreeRegressor(**params)
         self.model.fit(X_train, y_train)
-        self.y_pred = self.model.predict(X_test)
-        self._evaluate(y_test, self.y_pred)
-
-        # feature importances
+        y_pred = self.model.predict(X_test)
+        self.y_pred = y_pred
+        self._evaluate(y_test)
         self.feature_importance = pd.DataFrame({
-            "feature": self.independent_cols,
+            "feature": self.features,
             "importance": self.model.feature_importances_
         }).sort_values(by="importance", ascending=False)
-
         return self
 
-    def _evaluate(self, y_test, y_pred):
-        """Compute model evaluation metrics."""
-        if self.task_type == "Decision Tree Classifier":
-            acc = accuracy_score(y_test, y_pred)
-            prec, rec, f1, _ = precision_recall_fscore_support(
-                y_test, y_pred, average="weighted", zero_division=0
-            )
-            self.metrics = {
-                "accuracy": round(acc, 4),
-                "precision": round(prec, 4),
-                "recall": round(rec, 4),
-                "f1_score": round(f1, 4),
-            }
+    def _evaluate(self, y_test):
+        if self.task_type == "classification":
+            acc = accuracy_score(y_test, self.y_pred)
+            prec, rec, f1, _ = precision_recall_fscore_support(y_test, self.y_pred, average="weighted", zero_division=0)
+            self.metrics = {"accuracy": acc, "precision": prec, "recall": rec, "f1_score": f1}
         else:
-            self.metrics = {
-                "r2": round(r2_score(y_test, y_pred), 4),
-                "mse": round(mean_squared_error(y_test, y_pred), 4),
-                "rmse": round(np.sqrt(mean_squared_error(y_test, y_pred)), 4),
-                "mae": round(mean_absolute_error(y_test, y_pred), 4),
-            }
+            mse = mean_squared_error(y_test, self.y_pred)
+            self.metrics = {"r2": r2_score(y_test, self.y_pred), "mse": mse, "rmse": np.sqrt(mse),
+                            "mae": mean_absolute_error(y_test, self.y_pred)}
 
     def get_results(self):
-        """Return model, metrics, type, predictions, and class names."""
         return {
-            "model_type": self.task_type,
             "model": self.model,
+            "model_type": self.task_type,
             "metrics": self.metrics,
             "prediction": self.y_pred,
             "class_names": self.class_names,
-            "feature_importance": getattr(self, "feature_importance", None)
+            "feature_importance": self.feature_importance
         }
-
-
-
 
 
 '''
