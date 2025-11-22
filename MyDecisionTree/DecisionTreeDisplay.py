@@ -14,14 +14,14 @@ def DisplayDT(df, features, target):
     if X is None:
         return
     """Main Streamlit component for Decision Tree visualization and tuning."""
-    with st.expander("🌲 Decision Tree", expanded=True):
+    with st.expander("🌲 Decision Tree"):
 
         # Step 1: Train initial model
         model = DecisionTreeModel(X, y, list(X.columns), target, encoder)
         st.session_state.dt_result = model.train(max_depth=7, random_state=42).get_results()
         current_result = st.session_state.dt_result
         model_type = str(current_result["model_type"]).lower()
-        st.info(f"**Detected Model Type:** {current_result['model_type']}")
+        st.caption(f"###### **Detected Model Type:** {current_result['model_type']}")
 
         # Step 2: Define default hyperparameters
         default_params = {
@@ -48,7 +48,7 @@ def DisplayDT(df, features, target):
         # Step 3: Hyperparameter tuning form
         with st.expander(f"⚙️ {current_result['model_type']} - Hyperparameter Tuning", expanded=False):
             with st.form("dt_param_form"):
-                st.markdown("### Adjust Hyperparameters")
+                st.caption("##### Adjust Hyperparameters")
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     new_criterion = st.selectbox( "Criterion", ["gini", "entropy", "log_loss"] if "class" in model_type else ["squared_error", "friedman_mse", "absolute_error", "poisson"], index=0)
@@ -75,26 +75,27 @@ def DisplayDT(df, features, target):
 
                 submit = st.form_submit_button("🔄 Re-run Decision Tree")
                 if submit:
-                    new_params = {
-                        "criterion": new_criterion,
-                        "splitter": new_splitter,
-                        "max_features": new_max_features,
-                        "max_depth": new_max_depth,
-                        "random_state": new_random_state,
-                        "max_leaf_nodes": new_max_leaf_nodes,
-                        "min_samples_split": new_min_samples_split,
-                        "min_samples_leaf": new_min_samples_leaf,
-                        "min_impurity_decrease": new_min_impurity_decrease, }
+                    with st.spinner("Updating models with new parameters..."):
+                        new_params = {
+                            "criterion": new_criterion,
+                            "splitter": new_splitter,
+                            "max_features": new_max_features,
+                            "max_depth": new_max_depth,
+                            "random_state": new_random_state,
+                            "max_leaf_nodes": new_max_leaf_nodes,
+                            "min_samples_split": new_min_samples_split,
+                            "min_samples_leaf": new_min_samples_leaf,
+                            "min_impurity_decrease": new_min_impurity_decrease, }
 
-                    st.session_state.dt_params = new_params
-                    model = DecisionTreeModel(X, y, list(X.columns), target, encoder)
+                        st.session_state.dt_params = new_params
+                        model = DecisionTreeModel(X, y, list(X.columns), target, encoder)
 
-                    st.session_state.dt_result = model.train(**new_params).get_results()
-                    st.toast("✅ Decision Tree retrained successfully!", icon="🚀")
+                        st.session_state.dt_result = model.train(**new_params).get_results()
+                        st.toast("✅ Decision Tree retrained successfully!", icon="🚀")
                 current_result = st.session_state.dt_result
 
         # Step 4: Display Model Metrics st.markdown("---")
-        st.markdown("### 📊 Model Metrics")
+        st.markdown("#### 📊 Model Metrics")
         metrics = current_result["metrics"]
         cols = st.columns(len(metrics))
         for i, (key, value) in enumerate(metrics.items()):
@@ -103,7 +104,7 @@ def DisplayDT(df, features, target):
                 st.metric(label=key.upper(), value=formatted_value)
 
         # Step 5: Graphical Representations
-        with st.expander("📈 Graphical Representations", expanded=True):
+        with st.expander("📈 Graphical Representations"):
             display_tree_graph(current_result["model"], list(X.columns), current_result['model_type'], current_result)
             display_2d_scatter(X, y, current_result, current_result['model_type'])
 
@@ -142,8 +143,8 @@ def display_tree_graph(model, independent_cols, model_type, current_result):
         <div style='transform:scale({scale_factor});transform-origin:top center;'> {preview_svg} 
         </div> 
         </div> """
-        st.markdown("### 🌳 Decision Tree (Preview)")
-        st.caption("Showing top 4 levels. Expand below to view the full tree.")
+        st.markdown("##### 🌳 Decision Tree ")
+        st.caption("###### Showing top 4 levels. Expand below to view the full tree.")
         components.html(preview_html, height=360, scrolling=False)
 
         # Full Tree
@@ -173,7 +174,9 @@ def display_2d_scatter(X, y, current_result, model_type):
     if len(top_features_df) < 2:
         st.info("⚠️ Need at least two valid features to plot decision boundaries.")
         return
-    st.info( f"Top priority features (max 04): {{ {', '.join(f'{f}: {i:.5f}' for f, i in zip(top_features_df.feature, top_features_df.importance))} }}" )
+    st.markdown("##### 🌳 Decision Boundaries ")
+    st.caption( f"###### Top priority features (max 04): {{ {', '.join(f'{f}: {i:.5f}' for f, i in zip(top_features_df.feature, top_features_df.importance))} }}")
+    # st.info( f"Top priority features (max 04): {{ {', '.join(f'{f}: {i:.5f}' for f, i in zip(top_features_df.feature, top_features_df.importance))} }}" )
     top_features = top_features_df["feature"].tolist()
     if "class" in model_type:
         # figs = plot_decision_boundaries(X, y, top_features, class_names=current_result["class_names"],params= **st.session_state.dt_params)

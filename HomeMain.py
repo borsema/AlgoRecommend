@@ -5,6 +5,7 @@ from MyLinearRegression.myRegression_display import DisplayRegression
 
 # Import the fragment function
 from MyDecisionTree.DecisionTreeDisplay import DisplayDT
+from Knn.KnnDisplay import DisplayKNN
 
 
 # ---------- Theme & Config ----------
@@ -57,15 +58,24 @@ if uploaded_file:
         elif tagged_column == "None":
             st.warning("Please select a tagged column to run classification/regression.")
         else:
-            st.success("✅ Running Algorithm...")
 
-            # Linear Regression
-            st.subheader("Linear Regression")
-            DisplayRegression(df, selected_features, tagged_column)
+            with st.spinner("Running Algorithms..."):
 
-            # Decision Tree
-            st.subheader("Decision Tree")
-            DisplayDT(df, selected_features, tagged_column)
+                # Linear Regression
+                st.subheader("Linear Regression")
+                DisplayRegression(df, selected_features, tagged_column)
+
+                # Decision Tree
+                st.subheader("Decision Tree")
+                DisplayDT(df, selected_features, tagged_column)
+
+                # KNN Algorithm
+                st.subheader("Knn Algorithm")
+                DisplayKNN(df, selected_features, tagged_column)
+
+
+                # END
+                st.success("✅ All algorithm ran successfully. !")
 
 
 else:

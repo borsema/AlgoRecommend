@@ -18,7 +18,7 @@ def DisplayRegression(df: pd.DataFrame, selected_features: list, tagged_column: 
         st.info("Skipping this section because the target column or all features are empty.")
         return
 
-    with st.expander("📈 Linear Regression", expanded=True):
+    with st.expander("📈 Linear Regression", expanded=False):
 
         # Step 1: Train initial model
         model = MyRegression(cleaned_df, X, y)
@@ -80,16 +80,17 @@ def DisplayRegression(df: pd.DataFrame, selected_features: list, tagged_column: 
                     st.toast("✅ Regression models retrained successfully!", icon="🚀")
 
         # Step 4: Display Metrics
-        st.markdown("### 📊 Regression Metrics")
+        st.markdown("#### 📊 Model Metrics")
         display_metrics(metrics)
 
-        # Step 5: Visualization
-        st.markdown("### 📈 Model Visualizations")
-        plot_all_graphs_horizontal(model, cleaned_df, tagged_column)
+        with st.expander(" 📈 Graphical Representations"):
+            # Step 5: Visualization
+            st.markdown("##### 📈 Model Visualizations")
+            plot_all_graphs_horizontal(model, cleaned_df, tagged_column)
 
-        # Step 6: Predictions & Download
-        st.markdown("### 📄 Predictions & Download")
-        download_predictions(model, selected_features, tagged_column, target_mapping)
+            # Step 6: Predictions & Download
+            st.markdown("##### 📄 Predictions & Download")
+            download_predictions(model, selected_features, tagged_column, target_mapping)
 
 # ================================================================
 # 📊 METRICS DISPLAY
@@ -115,7 +116,6 @@ def display_metrics(metrics):
 # 📉 PLOTS (5 per row)
 # ================================================================
 def plot_all_graphs_horizontal(model, df, target_col):
-    st.subheader("📊 Model Visualizations")
 
     figs = []
 
@@ -219,7 +219,6 @@ def download_predictions(model, feature_columns, target_col, mappings):
     results_df["Predicted_Ridge"] = model.ridge_pred
     results_df["Predicted_Poly"] = model.poly_pred
 
-    st.subheader("📄 Predictions Preview")
     st.dataframe(results_df.head(5), use_container_width=True)
 
     output = io.BytesIO()
