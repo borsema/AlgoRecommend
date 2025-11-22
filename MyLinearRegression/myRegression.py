@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from sklearn.model_selection import train_test_split
@@ -16,6 +17,7 @@ class MyRegression:
         self.df = df
         self.X = X
         self.y = y
+        self.features = list(X.columns)
 
         self.test_size = test_size
         self.random_state = random_state
@@ -40,12 +42,14 @@ class MyRegression:
         self.lasso_pred = None
         self.ridge_pred = None
         self.poly_pred = None
+        self.feature_importance = None
 
     def train_models(self):
         self.linear_model.fit(self.X_train, self.y_train)
         self.lasso_model.fit(self.X_train, self.y_train)
         self.ridge_model.fit(self.X_train, self.y_train)
         self.poly_pipeline.fit(self.X_train, self.y_train)
+        self._compute_feature_importance()
 
     def predict(self):
         self.y_pred = self.linear_model.predict(self.X_test)
@@ -78,6 +82,13 @@ class MyRegression:
         bias = np.mean((np.mean(predictions, axis=0) - self.y_test) ** 2)
         variance = np.mean(np.var(predictions, axis=0))
         return bias, variance
+
+    def _compute_feature_importance(self):
+        importances = np.abs(self.linear_model.coef_)
+        self.feature_importance = pd.DataFrame({
+            "feature": self.features,
+            "importance": importances
+        }).sort_values(by="importance", ascending=False)
 
 
 

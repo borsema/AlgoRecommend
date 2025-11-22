@@ -6,6 +6,10 @@ from MyLinearRegression.myRegression_display import DisplayRegression
 # Import the fragment function
 from MyDecisionTree.DecisionTreeDisplay import DisplayDT
 from Knn.KnnDisplay import DisplayKNN
+from Svm.SvmDisplay import DisplaySVM
+from NaiveBayes.NaiveBayesDisplay import DisplayNaiveBayes
+from LogisticRegression.LogisticRegressionDisplay import DisplayLogisticRegression
+from XGBoost.XGBoostDisplay import DisplayXGBoost
 
 
 # ---------- Theme & Config ----------
@@ -65,6 +69,10 @@ if uploaded_file:
                 st.subheader("Linear Regression")
                 DisplayRegression(df, selected_features, tagged_column)
 
+                # Logistic Regression
+                st.subheader("Logistic Regression")
+                DisplayLogisticRegression(df, selected_features, tagged_column)
+
                 # Decision Tree
                 st.subheader("Decision Tree")
                 DisplayDT(df, selected_features, tagged_column)
@@ -72,6 +80,19 @@ if uploaded_file:
                 # KNN Algorithm
                 st.subheader("Knn Algorithm")
                 DisplayKNN(df, selected_features, tagged_column)
+
+                # SVM Algorithm
+                st.subheader("SVM Algorithm")
+                DisplaySVM(df, selected_features, tagged_column)
+
+                #NaiveBayes Algorithm
+                st.subheader("NaiveBayes Algorithm")
+                DisplayNaiveBayes(df, selected_features, tagged_column)
+
+                #XG Boost
+                st.subheader("XG Boost")
+                DisplayXGBoost(df, selected_features, tagged_column)
+
 
 
                 # END

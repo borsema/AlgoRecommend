@@ -86,6 +86,9 @@ def DisplayRegression(df: pd.DataFrame, selected_features: list, tagged_column: 
         with st.expander(" 📈 Graphical Representations"):
             # Step 5: Visualization
             st.markdown("##### 📈 Model Visualizations")
+            if hasattr(model, 'feature_importance') and model.feature_importance is not None:
+                top_features_df = model.feature_importance[["feature", "importance"]].head(4)
+                st.caption(f"###### Top priority features (max 04): {{ {', '.join(f'{f}: {i:.5f}' for f, i in zip(top_features_df.feature, top_features_df.importance))} }}")
             plot_all_graphs_horizontal(model, cleaned_df, tagged_column)
 
             # Step 6: Predictions & Download
