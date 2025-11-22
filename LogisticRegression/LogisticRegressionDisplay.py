@@ -55,7 +55,7 @@ def DisplayLogisticRegression(df, features, target):
                         model = LogisticRegressionModel(X, y, encoder)
                         st.session_state.lr_result = model.train(**new_params).get_results()
                         st.toast("✅ Logistic Regression retrained successfully!", icon="🚀")
-                current_result = st.session_state.lr_result
+            current_result = st.session_state.lr_result
 
         st.markdown("#### 📊 Model Metrics")
         metrics = current_result["metrics"]

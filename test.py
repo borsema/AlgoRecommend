@@ -4,12 +4,11 @@
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, r2_score
-from plot_utils import plot_decision_boundaries, plot_regression_surfaces
+from MyDecisionTree.plot_utils import plot_decision_boundaries, plot_regression_surfaces
 
 # Streamlit setup
 st.set_page_config(page_title="Generic Decision Tree App", layout="wide")

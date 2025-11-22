@@ -25,19 +25,24 @@ def DisplayRegression(df: pd.DataFrame, selected_features: list, tagged_column: 
         model.train_models()
         model.predict()
         metrics = model.calculate_metrics()
-
-        # Step 2: Define default hyperparameters
-        default_params = {
+        st.session_state.regression_state = {
             "lasso_alpha": 0.1,
             "ridge_alpha": 0.1,
             "poly_degree": 2,
             "model": model,
             "metrics": metrics
         }
+        current_state = st.session_state.regression_state
 
-        # Initialize session state (similar to Decision Tree logic)
-        if "regression_state" not in st.session_state:
-            st.session_state.regression_state = default_params.copy()
+        # Step 2: Define default hyperparameters
+        default_params = {
+            "lasso_alpha": 0.1,
+            "ridge_alpha": 0.1,
+            "poly_degree": 2
+        }
+
+        if "regression_params" not in st.session_state:
+            st.session_state.regression_params = default_params.copy()
 
         # Step 3: Hyperparameter tuning form
         with st.expander("⚙️ Regression - Hyperparameter Tuning", expanded=False):
@@ -54,6 +59,11 @@ def DisplayRegression(df: pd.DataFrame, selected_features: list, tagged_column: 
 
                 if submit:
                     with st.spinner("Updating regression models with new parameters..."):
+                        st.session_state.regression_params = {
+                            "lasso_alpha": new_lasso_alpha,
+                            "ridge_alpha": new_ridge_alpha,
+                            "poly_degree": new_poly_degree
+                        }
                         model = MyRegression(
                             cleaned_df, X, y,
                             lasso_alpha=new_lasso_alpha,
@@ -63,24 +73,20 @@ def DisplayRegression(df: pd.DataFrame, selected_features: list, tagged_column: 
                         model.train_models()
                         model.predict()
                         metrics = model.calculate_metrics()
-
-                        # Update session state
-                        st.session_state.regression_state.update({
+                        st.session_state.regression_state = {
                             "lasso_alpha": new_lasso_alpha,
                             "ridge_alpha": new_ridge_alpha,
                             "poly_degree": new_poly_degree,
                             "model": model,
                             "metrics": metrics
-                        })
-
-                    # Refresh local variables after retraining
-                    reg_state = st.session_state.regression_state
-                    model = reg_state["model"]
-                    metrics = reg_state["metrics"]
-                    st.toast("✅ Regression models retrained successfully!", icon="🚀")
+                        }
+                        st.toast("✅ Regression models retrained successfully!", icon="🚀")
+            current_state = st.session_state.regression_state
 
         # Step 4: Display Metrics
         st.markdown("#### 📊 Model Metrics")
+        model = current_state["model"]
+        metrics = current_state["metrics"]
         display_metrics(metrics)
 
         with st.expander(" 📈 Graphical Representations"):
