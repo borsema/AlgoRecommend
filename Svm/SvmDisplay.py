@@ -3,6 +3,7 @@ from Svm.SvmClean import clean_and_encode
 from Svm.SvmModel import SvmModel
 from Svm.svm_plot_utils import plot_svm_boundaries, plot_svm_surfaces
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 @st.fragment
@@ -107,3 +108,4 @@ def display_svm_boundaries(X, y, current_result, model_type):
     for i, fig in enumerate(figs):
         with cols[i % 6]:
             st.pyplot(fig, use_container_width=True)
+            plt.close(fig)

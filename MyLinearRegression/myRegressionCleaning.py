@@ -47,7 +47,7 @@ def clean_regression_data(df, selected_features, target_col, one_hot_threshold=1
         if X[col].nunique() <= one_hot_threshold:
             X = pd.get_dummies(X, columns=[col], drop_first=True)
         else:
-            X[col] = pd.factorize(X[col])[0]
+            X.loc[:, col] = pd.factorize(X[col])[0]
 
     X = X.apply(pd.to_numeric, errors='coerce').fillna(0)
     cleaned_df = X.copy()

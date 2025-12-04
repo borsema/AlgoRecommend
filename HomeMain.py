@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from blue_theme import apply_blue_theme
 from MyLinearRegression.myRegression_display import DisplayRegression
+from auth import show_login, show_logout, is_authenticated
 
 # Import the fragment function
 from MyDecisionTree.DecisionTreeDisplay import DisplayDT
@@ -19,12 +20,20 @@ st.set_page_config(page_title="Algorithm Recommendation Tool", layout="wide")
 # ---------- Header ----------
 st.markdown("<h1 style='text-align: center;'> ⋈ Algorithm Recommendation Tool ⋈</h1>", unsafe_allow_html=True)
 
+# Show logout button for authenticated users
+# if is_authenticated():
+#     show_logout()
+
 # ---------- Upload Section ----------
-with st.expander("📁 Upload CSV File", expanded=True):
-    uploaded_file = st.file_uploader("Upload your CSV file here", type=["csv"])
+with st.expander("📁 Upload File", expanded=True):
+    uploaded_file = st.file_uploader("Upload your CSV or Excel file here", type=["csv", "xlsx", "xls"])
 
 if uploaded_file:
-    df = pd.read_csv(uploaded_file)
+    # Read file based on extension
+    if uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file)
+    else:
+        df = pd.read_excel(uploaded_file)
     all_columns = df.columns.tolist()
 
     st.subheader("👀 Data Preview")
@@ -57,6 +66,12 @@ if uploaded_file:
 
     # --- MAIN LOGIC EXECUTION ---
     if run_clicked:
+        # Check authentication first
+        # if not is_authenticated():
+        #     st.warning("⚠️ Please login to run algorithm scanning")
+        #     show_login()
+        #     st.stop()
+        
         if not selected_features:
             st.warning("Please select at least one feature to proceed.")
         elif tagged_column == "None":
@@ -104,9 +119,9 @@ if uploaded_file:
                 #NaiveBayes Algorithm
                 st.subheader("NaiveBayes Algorithm")
                 DisplayNaiveBayes(df, selected_features, tagged_column)
-                if "nb_result" in st.session_state:
-                    metrics = st.session_state.nb_result.get("metrics", {})
-                    algorithm_scores["Naive Bayes"] = metrics.get("accuracy", 0)
+                if "nb_state" in st.session_state:
+                    metrics = st.session_state.nb_state.get("metrics", {})
+                    algorithm_scores["Naive Bayes"] = metrics.get("gaussian_accuracy", 0)
 
                 #XG Boost
                 st.subheader("XG Boost")

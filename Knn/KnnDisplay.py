@@ -3,6 +3,7 @@ from Knn.KnnClean import clean_and_encode
 from Knn.KnnModel import KnnModel
 from Knn.knn_plot_utils import plot_knn_boundaries, plot_knn_surfaces
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 @st.fragment
@@ -117,3 +118,4 @@ def display_knn_boundaries(X, y, current_result, model_type):
     for i, fig in enumerate(figs):
         with cols[i % 6]:
             st.pyplot(fig, use_container_width=True)
+            plt.close(fig)

@@ -18,7 +18,7 @@ def DisplayDT(df, features, target):
 
         # Step 1: Train initial model
         model = DecisionTreeModel(X, y, list(X.columns), target, encoder)
-        st.session_state.dt_result = model.train(max_depth=7, random_state=42).get_results()
+        st.session_state.dt_result = model.train(max_depth=5, random_state=42).get_results()
         current_result = st.session_state.dt_result
         model_type = str(current_result["model_type"]).lower()
         st.caption(f"###### **Detected Model Type:** {current_result['model_type']}")
