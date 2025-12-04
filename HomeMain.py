@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from blue_theme import apply_blue_theme
 from MyLinearRegression.myRegression_display import DisplayRegression
-from auth import show_login, show_logout, is_authenticated
+#from auth import show_login, show_logout, is_authenticated
 
 # Import the fragment function
 from MyDecisionTree.DecisionTreeDisplay import DisplayDT
