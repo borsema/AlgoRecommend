@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 echo "===== STARTUP.SH STARTED ====="
 
 apt-get update
